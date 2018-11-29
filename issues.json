@@ -1,0 +1,12 @@
+[
+  {
+    "id": "id1111",
+    "issue": "https://github.com/greenbej/issue-tracker-dummy/issues/1",
+    "path": "div.div.span.div"
+  },
+  {
+    "id": "id1112",
+    "issue": "https://github.com/greenbej/issue-tracker-dummy/issues/2",
+    "path": "div.div.div.span"
+  }
+]
