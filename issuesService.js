@@ -18,18 +18,19 @@ router.get('/all', function (request, response, next) {
 });
 
 router.get('/related', function (request, response, next) {
-    var status = findIssues(request.params);
+    var status = findIssues(request.body);
     response.json(status);
 });
 
 router.get('/issue/:id', function (request, response, next) {
-    var status = gitRequest.getIssueInfo(request.params);
+    var status = gitRequest.getIssueInfo(request.body);
     response.json(status);
 });
 
-router.post('/create', function (request, response, next) {
-    var status = createNewIssue(request.params);
-    //response.location('back');
+router.put('/create', function (request, response, next) {
+    var status = gitRequest.createIssue(gitRequest.testRepo, gitRequest.testOwner, gitRequest.defaultGithubToken, request.body);
+    //var status = createNewIssue(request.params);
+    response.location('back');
     response.json(status);
 });
 
@@ -56,6 +57,7 @@ function createNewIssue(issueDetails) {
         "assignees": []
     };
 
+    console.log("Reached create issue function");
     if(issueDetails.title) issueBody.title = issueDetails.title.toString();
     if(issueDetails.body) issueBody.body = issueDetails.body.toString();
     if(issueDetails.assignee) issueBody.assignee = issueDetails.assignee.toString();
@@ -63,17 +65,8 @@ function createNewIssue(issueDetails) {
     if(issueDetails.labels && issueDetails.labels.length>0) issueBody.labels = issueDetails.labels;
     if(issueDetails.assignees && issueDetails.assignees.length>0) issueBody.assignees = issueDetails.assignees;
 
-    var status = null;
-    try{
-        var output = gitRequest.createIssue(gitRequest.testRepo, gitRequest.testOwner, gitRequest.defaultGithubToken, issueBody);
-        status = successStatus;
-        status.output = output;
-    }
-    catch (err) {
-        status = failureStatus;
-        status.error = err;
-    }
-    return status;
+    var output = gitRequest.createIssue(gitRequest.testRepo, gitRequest.testOwner, gitRequest.defaultGithubToken, issueBody);
+    return output;
 }
 
 const testOptions = {

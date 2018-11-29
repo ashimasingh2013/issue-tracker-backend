@@ -7,7 +7,7 @@ var request = require("request");
 
 const testRepo = "issue-tracker-dummy";
 const testOwner = "greenbej";
-const defaultGithubToken = "37a2a2f557121c789c14dfdbc06cf404da559d03"; //ashima's token
+const defaultGithubToken = "64785ddb3724e64b0af2d6a79291741ad8facf0d"; //ashima's token
 const successStatus = {"code": 200, message: "success", "output": ""};
 const failureStatus = {"code": 500, message: "failure", "error": ""};
 
@@ -139,15 +139,19 @@ function createIssue(repo, owner, githubToken, body)
         headers: {"User-Agent": "EnableIssues", "content-type": "application/json", "Authorization": "token " + githubToken},
         body: JSON.stringify(body)
     };
+
     request(options, function (error, response, body)
     {
+
         if (error) {
             status = failureStatus;
             status.error = error;
+            console.log(" Error ===" + error);
         }
         else {
             status = successStatus;
             status.output = JSON.parse(body);
+            console.log(" Success response body ===" + body);
         }
     });
     while(sync) {require('deasync').sleep(100);}
