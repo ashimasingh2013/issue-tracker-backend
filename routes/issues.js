@@ -1,51 +1,53 @@
 var express = require('express');
 var router = express.Router();
 var Issue = require('../models/issues.model.js');
-var gitRequest = require("../github-restcall");
+var github = require('../services/github.service.js');
 
-const createIssueOptions = {
-    "repo": "",
-    "owner": "",
-    "authToken": "",
-    "title": "",
-    "body": "",
-    "assignee": "",
-    "milestone": null,
-    "labels": [],
-    "assignees": []
-};
+// const createIssueOptions = {
+//     'authToken': '5dcf902847d509c4f7d8d4615ad89b03beab5e6c',
+//     'title': 'Jeremy test',
+//     'body': 'Jeremy body',
+//     'milestone': null,
+//     'labels': [],
+//     'xpath':'//*[@id="main"]/table[2]/tbody/tr[5]/td[2]',
+//     'url':'www.google.com',
+//     'repo': 'greenbej/issue-tracker-dummy'
+// };
+
+// router.get('/all', function (req, res, next) {
+//     // var status = github.getIssueList();
+//     // response.json(status);
+//     Issue.find({}, function (err, issues) {
+//       if (err) return next(err);
+//       res.json(issues);
+//     });
+// });
+
+router.get('/:id', function (req, res, next) {
+  if (req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+    Issue.findOne({ _id: req.params.id }, function (err, issue) {
+      if (err) return next(err);
+      github.getIssue(issue).then(function (githubItem) {
+        githubItem.xpath = issue.xpath;
+        githubItem.url = issue.url;
+        githubItem._id = issue._id;
+        delete githubItem.id;
+        res.json(githubItem);
+      }).catch(function (err) {
+          res.json(err);
+      });
+    });
+  } else {
+    res.json('Not a valid ID');
+  }
 
 
-router.get('/', function (request, response, next) {
-    response.redirect('/issues/all');
 });
-
-router.get('/all', function (request, response, next) {
-    var status = gitRequest.getIssueList();
-    response.json(status);
-});
-
-router.get('/related', function (request, response, next) {
-    response.send("No related issues found");
-});
-
-router.get('/issue/:number', function (request, response, next) {
-    var status = gitRequest.getIssueInfo(request.params.number);
-    console.log("status = " + JSON.stringify(status));
-    response.json(status);
-});
-
-router.put('/create', function (request, response, next) {
-    var status = createNewIssue(request.body);
-    //response.location('back');
-    response.json(status);
-});
-
 
 /* GET issue suggestions. */
 router.post('/suggest', function(req, res, next) {
   var reg = req.body.xpath.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-  Issue.find({ xpath: { $regex : "^" + reg, $options: 'i' }}, function (err, issues) {
+  Issue.find({ xpath: { $regex : '^' + reg, $options: 'i' }, url: req.body.url }, function (err, issues) {
     if (err) return next(err);
     res.json(issues);
   });
@@ -53,49 +55,14 @@ router.post('/suggest', function(req, res, next) {
 
 /* POST issue. */
 router.post('/create', function(req, res, next) {
-  Issue.create(req.body, function (err, issue) {
-   if (err) return next(err);
-   res.json(issue);
+  github.createIssue(req.body).then(function (githubItem) {
+      Issue.create({xpath: req.body.xpath, url: req.body.url, issue_url: githubItem.url}, function (err, issue) {
+        if (err) return next(err);
+        res.json(issue);
+      });
+  }).catch(function (err) {
+      res.json(err);
   });
 });
-
-/** Helper Functions */
-function createNewIssue(issueDetails) {
-
-    console.log("issueDetails = " + JSON.stringify(issueDetails));
-    var repo = null;
-    if(issueDetails.repo) repo = issueDetails.repo;
-    else repo = gitRequest.testRepo;
-
-    var owner = null;
-    if(issueDetails.owner) owner = issueDetails.owner;
-    else owner = gitRequest.testOwner;
-
-    var githubToken = null;
-    if(issueDetails.authToken) githubToken = issueDetails.authToken;
-    else githubToken = gitRequest.defaultGithubToken;
-
-    var issueBody = {
-        "title": "",
-        "body": "",
-        "assignee": "",
-        "milestone": null,
-        "labels": [],
-        "assignees": []
-    };
-    if(issueDetails.title) issueBody.title = issueDetails.title.toString();
-    else issueBody.title = "dummy issue " + Math.random();
-    if(issueDetails.body) issueBody.body = issueDetails.body.toString();
-    else issueBody.body = "dummy issue details";
-    if(issueDetails.assignee) issueBody.assignee = issueDetails.assignee.toString();
-    if(typeof(issueDetails.milestone) == 'number' ) issueBody.milestone = issueDetails.milestone;
-    if(issueDetails.labels && issueDetails.labels.length>0) issueBody.labels = issueDetails.labels;
-    if(issueDetails.assignees && issueDetails.assignees.length>0) issueBody.assignees = issueDetails.assignees;
-
-    console.log("issueBody = " + JSON.stringify(issueBody));
-
-    var output = gitRequest.createIssue(repo, owner, githubToken, issueBody);
-    return output;
-}
 
 module.exports = router;

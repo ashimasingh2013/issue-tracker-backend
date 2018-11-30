@@ -3,8 +3,9 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var IssueSchema = new Schema({
-    xpath: String,
-    url: String
+    xpath: String, // Selected element xpath
+    url: String, // Webpage from selected element
+    issue_url: String, // URL to issue
 });
 
 // Compile model from schema
