@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
-var gitRequest = require("./github-restcall");
+var Issue = require('../models/issues.model.js');
+var gitRequest = require("../github-restcall");
+
 const createIssueOptions = {
     "repo": "",
     "owner": "",
@@ -39,12 +41,25 @@ router.put('/create', function (request, response, next) {
     response.json(status);
 });
 
-module.exports = router;
 
+/* GET issue suggestions. */
+router.post('/suggest', function(req, res, next) {
+  var reg = req.body.xpath.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  Issue.find({ xpath: { $regex : "^" + reg, $options: 'i' }}, function (err, issues) {
+    if (err) return next(err);
+    res.json(issues);
+  });
+});
 
+/* POST issue. */
+router.post('/create', function(req, res, next) {
+  Issue.create(req.body, function (err, issue) {
+   if (err) return next(err);
+   res.json(issue);
+  });
+});
 
 /** Helper Functions */
-
 function createNewIssue(issueDetails) {
 
     console.log("issueDetails = " + JSON.stringify(issueDetails));
@@ -83,6 +98,4 @@ function createNewIssue(issueDetails) {
     return output;
 }
 
-/*
-curl -d '{"repo": "issue-tracker-dummy", "owner": "greenbej", "authToken": "7670fb4d3e7edfcad640e6ce3394686da6c20b6b", "title":"Dummy Issue - 6", "body": "Issue description 6..", "labels": ["bug", "css"], "assignees": ["octoCat", "justACat"], "milestone": 3}' -H "Content-Type: application/json" -X PUT http://localhost:3000/issues/create
-*/
+module.exports = router;
