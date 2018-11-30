@@ -7,7 +7,7 @@ var request = require("request");
 
 const testRepo = "issue-tracker-dummy";
 const testOwner = "greenbej";
-const defaultGithubToken = "64785ddb3724e64b0af2d6a79291741ad8facf0d"; //ashima's token
+const defaultGithubToken = "7670fb4d3e7edfcad640e6ce3394686da6c20b6b"; //ashima's token
 const successStatus = {"code": 200, message: "success", "output": ""};
 const failureStatus = {"code": 500, message: "failure", "error": ""};
 
@@ -86,6 +86,7 @@ function getIssueInfo(issue, repo, owner)
             status = successStatus;
             status.output = JSON.parse(body);
         }
+        sync = false;
     });
     while(sync) {require('deasync').sleep(100);}
     return status;
@@ -111,6 +112,7 @@ function getIssueInfoAuth(issue, repo, owner, githubToken)
             status = successStatus;
             status.output = JSON.parse(body);
         }
+        sync = false;
     });
     while(sync) {require('deasync').sleep(100);}
     return status;
@@ -123,7 +125,7 @@ function createIssue(repo, owner, githubToken, body)
     if(!githubToken) githubToken = defaultGithubToken;
     if(!body) {
         body = {
-            "title": "dummy issue " + Math.random(),
+            "title": ("dummy issue " + Math.random()).toString(),
             "body": "dummy issue details",
             "assignee": "",
             "milestone": null,
@@ -131,6 +133,7 @@ function createIssue(repo, owner, githubToken, body)
             "assignees": []
         }
     }
+    console.log(body);
     var sync = true;
     var status  = null;
     var options = {
@@ -148,11 +151,19 @@ function createIssue(repo, owner, githubToken, body)
             status.error = error;
             console.log(" Error ===" + error);
         }
+
+        else if(body.message != null && body.message.contains("Invalid")) {
+            status = failureStatus;
+            status.error = body.message + "\n" + body.documentation_url;
+            console.log(" Error === " + error);
+        }
+
         else {
             status = successStatus;
             status.output = JSON.parse(body);
             console.log(" Success response body ===" + body);
         }
+        sync = false;
     });
     while(sync) {require('deasync').sleep(100);}
     return status;
