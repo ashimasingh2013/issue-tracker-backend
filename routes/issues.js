@@ -1,5 +1,8 @@
 var express = require('express');
 var router = express.Router();
+var Q = require('q');
+var request = require("request");
+var rp = require('request-promise');
 var Issue = require('../models/issues.model.js');
 var github = require('../services/github.service.js');
 
@@ -47,9 +50,25 @@ router.get('/:id', function (req, res, next) {
 /* GET issue suggestions. */
 router.post('/suggest', function(req, res, next) {
   var reg = req.body.xpath.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-  Issue.find({ xpath: { $regex : '^' + reg, $options: 'i' }, url: req.body.url }, function (err, issues) {
+  var q = Issue.find({ xpath: { $regex : '^' + reg, $options: 'i' }, url: req.body.url }).limit(5);
+  q.exec(function(err, issues) {
+
+    var promises = [];
+    for (var i = 0; i < issues.length; i++) {
+      promises.push(rp({
+          url : issues[i].issue_url,
+          method: 'GET',
+          headers: {"User-Agent": "EnableIssues", "content-type": "application/json"},
+          json: true // Automatically stringifies the body to JSON
+      }));
+    }
+
     if (err) return next(err);
-    res.json(issues);
+
+    Q.all(promises).then(function (data) {
+      res.json(data);
+    });
+
   });
 });
 
